@@ -7,9 +7,9 @@ export default function RootLayout({ children }) {
   const router = useRouter();
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem("auth");
-    if (!isAuthenticated) {
-      router.push("/login");
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login"); // Redirect to login if no token
     }
   }, []);
 

@@ -1,15 +1,17 @@
 "use client";
 import { useState, useEffect } from "react";
+import axios from 'axios'
+import { useRouter } from "next/navigation";
 
 export default function HomeLibrary() {
   const [activeSection, setActiveSection] = useState("home");
 
   const [formData, setFormData] = useState({
-    bookId: "",
     bookName: "",
     author: "",
     publication: "",
     price: "",
+    bookId:""
   });
 
   const [issuedBooks, setIssuedBooks] = useState([]);
@@ -23,103 +25,92 @@ export default function HomeLibrary() {
 
   const [message, setMessage] = useState("");
   const [books, setBooks] = useState([]);
+  const router=useRouter()
 
-  // Fetch all books when the "All Books" section is active
-  // useEffect(() => {
-  //   const fetchBooks = async () => {
-  //     try {
-  //       const response = await fetch('http://localhost:5000/api/books', {
-  //         headers: {
-  //           'Authorization': `Bearer ${localStorage.getItem('token')}`,
-  //         },
-  //       });
-  //       const data = await response.json();
-  //       if (response.ok) {
-  //         setBooks(data);
-  //       } else {
-  //         alert(data.message);
-  //       }
-  //     } catch (err) {
-  //       alert('An error occurred while fetching books');
-  //     }
-  //   };
+  useEffect(() => {
+    const fetchBooks = async () => {
+        try {
+            const response = await axios.get("/api/books/all-books");
+            const data=await response.data;
+            setBooks(data.books); // Assuming API returns { books: [...] }
+        } catch (err) {
+          console.error("Error fetching books:", err);
+        } 
+    };
 
-  //   if (activeSection === 'all_books') {
-  //     fetchBooks();
-  //   }
-  // }, [activeSection]);
+    fetchBooks();
+}, []);
 
-  // Fetch issued books when the "Issued Book" section is active
-  // useEffect(() => {
-  //   const fetchIssuedBooks = async () => {
-  //     try {
-  //       const response = await fetch('http://localhost:5000/api/issued-books', {
-  //         headers: {
-  //           'Authorization': `Bearer ${localStorage.getItem('token')}`,
-  //         },
-  //       });
-  //       const data = await response.json();
-  //       if (response.ok) {
-  //         setIssuedBooks(data);
-  //       } else {
-  //         alert(data.message);
-  //       }
-  //     } catch (err) {
-  //       alert('An error occurred while fetching issued books');
-  //     }
-  //   };
+useEffect(() => {
+  const fetchIssueBooks = async () => {
+      try {
+          const response = await axios.get("/api/books/get-issue");
+          const data=await response.data;
+          setIssuedBooks(data.books); // Assuming API returns { books: [...] }
+      } catch (err) {
+        console.error("Error fetching issued books:", err);
+      } 
+  };
 
-  //   if (activeSection === 'issued_book') {
-  //     fetchIssuedBooks();
-  //   }
-  // }, [activeSection]);
+  fetchIssueBooks();
+}, []);
+
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
     
-    // Simulating adding a book locally (assuming `setBooks` manages the local book list)
-    setBooks((prevBooks) => [...prevBooks, formData]);
+    try {
+      const res=await axios.post("/api/books/add-books",formData)
+
+      setMessage('✅ Book added successfully!');
+      setTimeout(() => setMessage(''), 3000);
+    
+      // Reset form fields
+      setFormData({
+        bookId: '',
+        bookName: '',
+        author: '',
+        publication: '',
+        price: '',
+      });
+
+    } catch (error) {
+      console.error("Error adding books:", error);
+    }
   
-    setMessage('✅ Book added successfully!');
-    setTimeout(() => setMessage(''), 3000);
-  
-    // Reset form fields
-    setFormData({
-      bookId: '',
-      bookName: '',
-      author: '',
-      publication: '',
-      price: '',
-    });
   };
   
   const handleIssueChange = (e) => {
     setIssueForm({ ...issueForm, [e.target.name]: e.target.value });
   };
 
-  const handleIssueSubmit = (e) => {
+  const handleIssueSubmit = async(e) => {
     e.preventDefault();
     
-    // Simulating issuing a book locally
-    setIssuedBooks((prevIssuedBooks) => [...prevIssuedBooks, issueForm]);
-  
-    setShowIssueForm(false);
-    setIssueForm({ name: "", bookName: "", mobile: "", issueDate: "" });
-  };
-  
-  const handleReturnBook = (index) => {
-    // Removing the book locally
-    const updatedIssuedBooks = issuedBooks.filter((_, i) => i !== index);
-    setIssuedBooks(updatedIssuedBooks);
+  try {
+    const response=await axios.post('/api/books/issue-books',issueForm)
+  } catch (error) {
+    console.error("Error issuing books:", error);
+  }
   };
 
-  const handleDeleteBook = (index) => {
-    const updatedBooks = books.filter((_, i) => i !== index);
-    setBooks(updatedBooks);
+  const handleLogout=async()=>{
+    await axios.post('/api/users/logout')
+    router.push('/login')
+  }
+  
+  const handleReturnBook = async(book) => {
+    console.log("book",book)
+    // Removing the book locally
+    const updatedIssuedBooks = await axios.post('/api/books/receive-books',book)
+  };
+
+  const handleDeleteBook = async(book) => {
+    const deletebook=await axios.post('/api/books/delete-books',book)
   };
   
   
@@ -142,10 +133,7 @@ export default function HomeLibrary() {
 
         <button
           className="absolute right-4 text-lg font-semibold"
-          onClick={() => {
-            localStorage.removeItem("token"); // Remove user token
-            window.location.href = "/login"; // Redirect to login page
-          }}
+          onClick={handleLogout}
         >
           Logout
         </button>
@@ -202,10 +190,12 @@ export default function HomeLibrary() {
               <tbody>
                 {issuedBooks.map((book, index) => (
                   <tr key={index}>
+                    <td className="border p-2">{book.borrower}</td>
                     <td className="border p-2">{book.name}</td>
-                    <td className="border p-2">{book.bookName}</td>
-                    <td className="border p-2">{book.mobile}</td>
-                    <td className="border p-2">{book.issueDate}</td>
+                    <td className="border p-2">{book.number}</td>
+                    <td className="border p-2">
+  {new Date(book.issueDate).toLocaleDateString('en-GB')} 
+</td>
                   </tr>
                 ))}
               </tbody>
@@ -266,14 +256,14 @@ export default function HomeLibrary() {
                 {issuedBooks.length > 0 ? (
                   issuedBooks.map((book, index) => (
                     <tr key={index}>
+                      <td className="border p-2">{book.borrower}</td>
                       <td className="border p-2">{book.name}</td>
-                      <td className="border p-2">{book.bookName}</td>
-                      <td className="border p-2">{book.mobile}</td>
+                      <td className="border p-2">{book.number}</td>
                       <td className="border p-2">{book.issueDate}</td>
                       <td className="border p-2">
                         <button
                           className="bg-green-600 text-white px-4 py-1 rounded-md shadow hover:bg-green-700 transition-all"
-                          onClick={() => handleReturnBook(index)}
+                          onClick={() => handleReturnBook(book)}
                         >
                           ✅ Return Book
                         </button>
@@ -323,14 +313,14 @@ export default function HomeLibrary() {
           <tr key={book.bookId || index}> {/* Ensure a unique key */}
             <td className="border p-2">{index + 1}</td>
             <td className="border p-2">{book.bookId}</td>
-            <td className="border p-2">{book.bookName}</td>
+            <td className="border p-2">{book.name}</td>
             <td className="border p-2">{book.author}</td>
             <td className="border p-2">{book.publication}</td>
             <td className="border p-2">{book.price}</td>
             <td className="border p-2 text-center">
               <button 
                 className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700"
-                onClick={() => handleDeleteBook(index)}
+                onClick={() => handleDeleteBook(book)}
               >
                 Delete
               </button>
@@ -352,7 +342,7 @@ export default function HomeLibrary() {
             {message && <p className="text-green-600 font-semibold mb-4">{message}</p>}
 
             <form onSubmit={handleSubmit} className="w-[500px] flex flex-col gap-3">
-              {["bookId", "bookName", "author", "publication", "price"].map((field, index) => (
+              {["bookId","bookName", "author", "publication","price"].map((field, index) => (
                 <div key={index} className="flex items-center">
                   <label className="w-32 font-semibold capitalize">{field.replace(/([A-Z])/g, " $1")} -</label>
                   <input

@@ -1,32 +1,50 @@
 "use client";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
+  const [user, setUser] = React.useState({
+    username: "",
+    password: "",
+})
 
-  const handleLogin = (e) => {
+  const handleLogin = async(e) => {
     e.preventDefault();
     
-    // Dummy authentication logic (you can replace it with local validation)
-    if (username === "admin" && password === "password") {
-        alert("✅ Login successful!");
-        router.push('/'); // Redirect to home page
-    } else {
-        alert("❌ Invalid credentials");
-    }
+    const response = await axios.post("/api/users/login", user);
+      console.log("Login success", response.data);
+      localStorage.setItem("token", response.data.token);
+      router.push("/");
 };
 
+const handleSignup=(e)=>{
+  e.preventDefault();
+  router.push('/signup')
+}
 
-  const handleForgotPassword = (e) => {
-    e.preventDefault();
-    alert(`Password reset link sent to ${email}`);
+
+const handleForgotPassword = async (e) => {
+  e.preventDefault();
+
+  try {
+    const response = await fetch("/api/users/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const data = await response.json();
+    alert(data.message);
     setShowForgotPassword(false);
-  };
+  } catch (error) {
+    console.error("Error sending reset email", error);
+    alert("Failed to send reset link. Try again.");
+  }
+};
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -46,8 +64,8 @@ export default function LoginPage() {
               type="text"
               id="username"
               placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => setUser({...user, username: e.target.value})}
+              autoComplete="off"
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
             />
           </div>
@@ -59,8 +77,8 @@ export default function LoginPage() {
               type="password"
               id="password"
               placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="off"
+              onChange={(e) => setUser({...user, password: e.target.value})}
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
             />
           </div>
@@ -70,6 +88,7 @@ export default function LoginPage() {
           >
             Login
           </button>
+          <button onClick={(e)=>handleSignup(e)}>Signup</button>
           <p
             className="text-center text-blue-600 text-sm mt-4 cursor-pointer hover:underline"
             onClick={() => setShowForgotPassword(true)}
