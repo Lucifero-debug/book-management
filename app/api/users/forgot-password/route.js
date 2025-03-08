@@ -22,9 +22,11 @@ console.log("first")
 
   console.log("Updated user:", user);
   const resend = new Resend(process.env.RESEND_API_KEY);
+  const host = req.headers.get("host");
+  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  const baseUrl = `${protocol}://${host}`;
 
-  const resetLink = `${process.env.NEXT_PUBLIC_BASE_URL}/reset-password?token=${resetToken}`;
-
+  const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
   const data = await resend.emails.send({
     from: 'onboarding@resend.dev',
     to: email,
