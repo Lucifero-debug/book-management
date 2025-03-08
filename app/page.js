@@ -368,7 +368,7 @@ useEffect(() => {
 
       {/* ✅ Footer */}
       <footer className="w-full text-center bg-white py-3 shadow-md text-lg mt-auto">
-        Powered By <span className="text-blue-600">@PankajDev</span>.
+        Powered By <span className="text-blue-600">@PrashantDev</span>.
       </footer>
     </div>
   );
